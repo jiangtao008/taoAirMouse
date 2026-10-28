@@ -71,11 +71,11 @@ void loop() {
       bleMouse.release(MOUSE_RIGHT);
     }
 
-    // Debugging
-    Serial.print("dx: "); Serial.print(avgDx);
-    Serial.print(" dy: "); Serial.print(avgDy);
-    Serial.print(" L: "); Serial.print(digitalRead(LEFT_BUTTON_PIN));
-    Serial.print(" R: "); Serial.println(digitalRead(RIGHT_BUTTON_PIN));
+    // Debugging — printing every loop makes movement laggy; enable only when needed
+    // Serial.print("dx: "); Serial.print(avgDx);
+    // Serial.print(" dy: "); Serial.print(avgDy);
+    // Serial.print(" L: "); Serial.print(digitalRead(LEFT_BUTTON_PIN));
+    // Serial.print(" R: "); Serial.println(digitalRead(RIGHT_BUTTON_PIN));
   }
 
   delay(10);
