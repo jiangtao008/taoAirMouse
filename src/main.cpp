@@ -4,7 +4,7 @@
 #include <BleMouse.h>
 
 MPU6050 mpu;
-BleMouse bleMouse("AirMouse", "ESP32", 100);
+BleMouse bleMouse("taoAirMouse", "ESP32", 100);
 
 // Button pins
 #define LEFT_BUTTON_PIN  5   // Left click
@@ -12,9 +12,11 @@ BleMouse bleMouse("AirMouse", "ESP32", 100);
 
 void setup() {
   Serial.begin(115200);
+  delay(100);
+  Serial.println("Boot OK");
 
-  // MPU6050 init
-  Wire.begin(21, 22);
+  // MPU6050 init (SDA=21, SCL=20)
+  Wire.begin(21, 20);
   mpu.initialize();
 
   if (mpu.testConnection()) {

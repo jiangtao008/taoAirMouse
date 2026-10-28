@@ -24,14 +24,12 @@
 
 | 功能 | ESP32 引脚 | 备注 |
 | --- | --- | --- |
-| I2C SDA | GPIO 21 | `Wire.begin(21, 22)` |
-| I2C SCL | GPIO 22 | |
+| I2C SDA | GPIO 21 | `Wire.begin(21, 20)` |
+| I2C SCL | GPIO 20 | |
 | 左键 | GPIO 5 | `INPUT_PULLUP`，按下接地 |
 | 右键 | GPIO 10 | `INPUT_PULLUP`，按下接地 |
 
 按键一端接对应 GPIO，另一端接 GND，按下时读取为低电平。
-
-> ⚠️ 注意：代码中的 I2C 引脚（21/22）是经典 ESP32 的默认引脚。ESP32-C3 并不存在 GPIO22，若使用 C3 开发板，请把 `src/main.cpp` 中的 `Wire.begin(21, 22)` 改为实际接线引脚（如 SDA=8、SCL=9），并同步修改 `platformio.ini` 中的 `board`。
 
 ## 软件
 
