@@ -7,8 +7,8 @@ MPU6050 mpu;
 BleMouse bleMouse("AirMouse", "ESP32", 100);
 
 // Button pins
-#define LEFT_BUTTON_PIN  4   // Left click
-#define RIGHT_BUTTON_PIN 5   // Right click
+#define LEFT_BUTTON_PIN  5   // Left click
+#define RIGHT_BUTTON_PIN 10  // Right click
 
 void setup() {
   Serial.begin(115200);

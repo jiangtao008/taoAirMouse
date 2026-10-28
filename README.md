@@ -26,8 +26,8 @@
 | --- | --- | --- |
 | I2C SDA | GPIO 21 | `Wire.begin(21, 22)` |
 | I2C SCL | GPIO 22 | |
-| 左键 | GPIO 4 | `INPUT_PULLUP`，按下接地 |
-| 右键 | GPIO 5 | `INPUT_PULLUP`，按下接地 |
+| 左键 | GPIO 5 | `INPUT_PULLUP`，按下接地 |
+| 右键 | GPIO 10 | `INPUT_PULLUP`，按下接地 |
 
 按键一端接对应 GPIO，另一端接 GND，按下时读取为低电平。
 
