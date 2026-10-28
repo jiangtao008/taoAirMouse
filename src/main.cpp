@@ -43,8 +43,8 @@ void loop() {
     // Scale down sensitivity
     // Pointing-remote style: yaw (gz) -> cursor left/right, pitch (gx) -> up/down.
     // If a direction feels inverted, flip its sign here (gz -> -gz, or -gx -> gx).
-    int dx = gz / 800;
-    int dy = -gx / 800;
+    int dx = -gz / 800;
+    int dy = gx / 800;
 
     // Deadzone filter
     if (abs(dx) < 3) dx = 0;
