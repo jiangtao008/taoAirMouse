@@ -41,8 +41,10 @@ void loop() {
     mpu.getMotion6(&ax, &ay, &az, &gx, &gy, &gz);
 
     // Scale down sensitivity
-    int dx = gx / 800;
-    int dy = -gy / 800;
+    // Pointing-remote style: yaw (gz) -> cursor left/right, pitch (gx) -> up/down.
+    // If a direction feels inverted, flip its sign here (gz -> -gz, or -gx -> gx).
+    int dx = gz / 800;
+    int dy = -gx / 800;
 
     // Deadzone filter
     if (abs(dx) < 3) dx = 0;
