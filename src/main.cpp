@@ -2,6 +2,7 @@
 #include <I2Cdev.h>
 #include <MPU6050.h>
 #include <BleMouse.h>
+#include <math.h>
 
 MPU6050 mpu;
 BleMouse bleMouse("taoAirMouse", "ESP32", 100);
@@ -9,6 +10,42 @@ BleMouse bleMouse("taoAirMouse", "ESP32", 100);
 // Button pins
 #define LEFT_BUTTON_PIN  5   // Left click
 #define RIGHT_BUTTON_PIN 10  // Right click
+
+// Gyro zero offsets, calibrated at startup (device must be still)
+int16_t gxOff = 0, gyOff = 0, gzOff = 0;
+
+// --- Tuning knobs ---
+#define GYRO_LSB_PER_DPS 131.0f  // MPU6050 @ +-250 deg/s: 131 LSB per deg/s
+#define DEADZONE_DPS     2.0f    // ignore rotation slower than this (deg/s)
+#define SENSITIVITY      0.30f   // cursor pixels per deg/s (bigger = faster)
+#define MAX_STEP         30      // clamp a single move (px)
+
+void calibrateGyro() {
+  const int N = 300;
+  long sx = 0, sy = 0, sz = 0;
+  int16_t gx, gy, gz;
+  for (int i = 0; i < N; i++) {
+    mpu.getRotation(&gx, &gy, &gz);
+    sx += gx; sy += gy; sz += gz;
+    delay(2);
+  }
+  gxOff = sx / N;
+  gyOff = sy / N;
+  gzOff = sz / N;
+  Serial.printf("Gyro zero: gx=%d gy=%d gz=%d\n", gxOff, gyOff, gzOff);
+}
+
+// Convert gyro angular velocity (raw) to a cursor step (float px),
+// applying deadzone and clamping. Returns fractional pixels so slow
+// movement is preserved by the accumulator in loop().
+float gyroToStep(int16_t raw, int16_t off) {
+  float dps = (raw - off) / GYRO_LSB_PER_DPS;
+  if (fabsf(dps) < DEADZONE_DPS) return 0.0f;
+  float step = dps * SENSITIVITY;
+  if (step > MAX_STEP) step = MAX_STEP;
+  else if (step < -MAX_STEP) step = -MAX_STEP;
+  return step;
+}
 
 void setup() {
   Serial.begin(115200);
@@ -18,12 +55,16 @@ void setup() {
   // MPU6050 init (SDA=21, SCL=20)
   Wire.begin(21, 20);
   mpu.initialize();
+  mpu.setFullScaleGyroRange(MPU6050_GYRO_FS_250); // +-250 deg/s = most precise
 
   if (mpu.testConnection()) {
     Serial.println("MPU6050 connected successfully");
   } else {
     Serial.println("MPU6050 connection failed");
   }
+
+  // Keep the device STILL during this ~0.6s calibration.
+  calibrateGyro();
 
   // BLE Mouse init
   bleMouse.begin();
@@ -35,28 +76,23 @@ void setup() {
 
 void loop() {
   if (bleMouse.isConnected()) {
-    int16_t ax, ay, az;
     int16_t gx, gy, gz;
+    mpu.getRotation(&gx, &gy, &gz);
 
-    mpu.getMotion6(&ax, &ay, &az, &gx, &gy, &gz);
+    // Pointing-remote style: yaw (gz) -> left/right, pitch (gx) -> up/down.
+    // Signs match your working orientation; flip if a direction is inverted.
+    float stepX = -gyroToStep(gz, gzOff);
+    float stepY =  gyroToStep(gx, gxOff);
 
-    // Scale down sensitivity
-    // Pointing-remote style: yaw (gz) -> cursor left/right, pitch (gx) -> up/down.
-    // If a direction feels inverted, flip its sign here (gz -> -gz, or -gx -> gx).
-    int dx = -gz / 800;
-    int dy = gx / 800;
+    // Fractional accumulator: emit integer pixels while keeping the remainder,
+    // so slow movement stays smooth instead of truncating to zero.
+    static float accX = 0, accY = 0;
+    accX += stepX;
+    accY += stepY;
+    int dx = (int)accX;  accX -= dx;
+    int dy = (int)accY;  accY -= dy;
 
-    // Deadzone filter
-    if (abs(dx) < 3) dx = 0;
-    if (abs(dy) < 3) dy = 0;
-
-    // Smoothing (simple moving average)
-    static int avgDx = 0, avgDy = 0;
-    avgDx = (avgDx * 4 + dx) / 5;
-    avgDy = (avgDy * 4 + dy) / 5;
-
-    // Move mouse
-    bleMouse.move(avgDx, avgDy);
+    bleMouse.move(dx, dy);
 
     // --- Button handling ---
     // Left click
@@ -72,13 +108,7 @@ void loop() {
     } else {
       bleMouse.release(MOUSE_RIGHT);
     }
-
-    // Debugging — printing every loop makes movement laggy; enable only when needed
-    // Serial.print("dx: "); Serial.print(avgDx);
-    // Serial.print(" dy: "); Serial.print(avgDy);
-    // Serial.print(" L: "); Serial.print(digitalRead(LEFT_BUTTON_PIN));
-    // Serial.print(" R: "); Serial.println(digitalRead(RIGHT_BUTTON_PIN));
   }
 
-  delay(10);
+  delay(5);  // ~150 Hz update; lower = snappier
 }
